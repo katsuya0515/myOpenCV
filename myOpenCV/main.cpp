@@ -34,7 +34,7 @@ int main () {
         cvCircle(dst_img, cvPointFrom32f(corners[i]), 20, CV_RGB (0, 0, 255), 2);
     }
     
-    cv::imshow("test", dst_img);
+    cvSaveImage("/Users/kty0515/Documents/Xcode/myOpenCV/o.png", dst_img);
     
     cvReleaseImage(&dst_img);
     cvReleaseImage(&eig_img);
