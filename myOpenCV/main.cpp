@@ -7,40 +7,64 @@
 //
 
 #include "opencv2/opencv.hpp"
+#include "opencv2/highgui.hpp"
 
-int main(int argh, char* argv[])
+#include <iostream>
+#include <vector>
+
+int main(int argc, char** argv)
 {
-    cv::VideoCapture cap(0);//デバイスのオープン
-    //cap.open(0);//こっちでも良い．
+    cv::VideoCapture cap(0);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     
-    if(!cap.isOpened())//カメラデバイスが正常にオープンしたか確認．
-    {
-        //読み込みに失敗したときの処理
-        return -1;
-    }
+    const int cycle = 30;
     
-    while(1)//無限ループ
-    {
+    cv::Mat prevFrame;
+    cv::Size frameSize = prevFrame.size();
+    cap >> prevFrame;
+    
+    cv::waitKey(cycle);
+    
+    while (1) {
         cv::Mat frame;
-        cap >> frame; // get a new frame from camera
+        cap >> frame;
         
-        //
-        //取得したフレーム画像に対して，クレースケール変換や2値化などの処理を書き込む．
-        //
+        cv::Mat prevFrameGray;
+        cv::Mat currFrameGray;
         
-        cv::imshow("window", frame);//画像を表示．
+        cv::cvtColor(prevFrame, prevFrameGray, CV_RGB2GRAY);
+        cv::cvtColor(frame, currFrameGray, CV_RGB2GRAY);
         
-        int key = cv::waitKey(1);
-        if(key == 113)//qボタンが押されたとき
-        {
-            break;//whileループから抜ける．
+        // 特徴点抽出
+        std::vector<cv::Point2f> prevCorners;
+        std::vector<cv::Point2f> currCorners;
+        
+        cv::goodFeaturesToTrack(prevFrameGray, prevCorners, 20, 0.05, 5.0);
+        cv::goodFeaturesToTrack(currFrameGray, currCorners, 20, 0.05, 5.0);
+        cv::cornerSubPix(prevFrameGray, prevCorners, cv::Size(21, 21), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01));
+        cv::cornerSubPix(currFrameGray, currCorners, cv::Size(21, 21), cv::Size(-1, -1), cv::TermCriteria(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 30, 0.01));
+        
+        std::vector<uchar> featuresFound;
+        std::vector<float> featuresErrors;
+        
+        cv::calcOpticalFlowPyrLK(
+                                 prevFrameGray,
+                                 currFrameGray,
+                                 prevCorners,
+                                 currCorners,
+                                 featuresFound,
+                                 featuresErrors);
+        
+        for (int i = 0; i < featuresFound.size(); i++) {
+            cv::Point p1 = cv::Point((int) prevCorners[i].x, (int) prevCorners[i].y);
+            cv::Point p2 = cv::Point((int) currCorners[i].x, (int) currCorners[i].y);
+            cv::line(frame, p1, p2, cv::Scalar(0, 0, 255), 2);
         }
-        else if(key == 115)//sが押されたとき
-        {
-            //フレーム画像を保存する．
-            cv::imwrite("img.png", frame);
-        }
+        
+        cv::imshow("preview", frame);
+        prevFrame = frame;
+        if (cv::waitKey(cycle) == 27) { break; }
     }
-    cv::destroyAllWindows();
     return 0;
 }
