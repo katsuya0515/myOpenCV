@@ -7,6 +7,22 @@
 //
 
 #include "opencv2/opencv.hpp"
+using namespace std;
+
+void PinP_tr(const cv::Mat &srcImg, const cv::Mat &smallImg, const int tx, const int ty)
+{
+    //背景画像の作成
+    cv::Mat dstImg;
+    srcImg.copyTo(dstImg);
+    
+    //前景画像の変形行列
+    cv::Mat mat = (cv::Mat_<double>(2,3)<<1.0, 0.0, tx, 0.0, 1.0, ty);
+    
+    //アフィン変換の実行
+    cv::warpAffine(smallImg, dstImg, mat, dstImg.size(), CV_INTER_LINEAR, cv::BORDER_TRANSPARENT);
+    imshow("affine", dstImg);
+}
+
 
 int main(int argh, char* argv[])
 {
@@ -28,7 +44,11 @@ int main(int argh, char* argv[])
         //取得したフレーム画像に対して，クレースケール変換や2値化などの処理を書き込む．
         //
         
-        cv::imshow("window", frame);//画像を表示．
+        cv::Rect myROI(0, 0, 300, 300);
+        
+        cv::Mat cut_img(frame,myROI);
+        // cv::imwrite("/Users/kty0515/Documents/Xcode/myOpenCV/data/img.png", cut_img);
+       PinP_tr(frame, cut_img, 10, 10);
         
         int key = cv::waitKey(1);
         if(key == 113)//qボタンが押されたとき
@@ -37,8 +57,11 @@ int main(int argh, char* argv[])
         }
         else if(key == 115)//sが押されたとき
         {
-            //フレーム画像を保存する．
-            cv::imwrite("img.png", frame);
+            cv::Rect myROI(0, 0, 100, 100);
+            
+            cv::Mat cut_img(frame,myROI);
+            cv::imwrite("/Users/kty0515/Documents/Xcode/myOpenCV/data/img.png", cut_img);
+            cout<<"Saved"<<endl;
         }
     }
     cv::destroyAllWindows();
